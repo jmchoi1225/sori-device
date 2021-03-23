@@ -3,7 +3,7 @@
 TFmini  TFmini;
 uint16_t distance,strength;
 unsigned long lastPrint = 0;
-unsigned long const DELAY_TIME = 500;
+unsigned long const DELAY_TIME = 1000;
 
 void setup(){
   Serial.begin(9600);
@@ -11,14 +11,12 @@ void setup(){
 }
 
 void loop(){
-  Serial.print(millis() - lastPrint);
-  Serial.print("\n");
   if(TFmini.measure()){
-    Serial.print("Value read from TFmini");
     if(millis() - lastPrint > DELAY_TIME){
       printResult();
     }
   }
+  delay(20);
 }
 
 void printResult(){
