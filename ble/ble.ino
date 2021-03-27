@@ -6,26 +6,26 @@ const char* uuidOfRxChar = "00002A3D-0000-1000-8000-00805f9b34fb";
 const char* uuidOfTxChar = "00002A58-0000-1000-8000-00805f9b34fb";
 
 const int RX_BUFFER_SIZE = 256;
-bool RX_BUFFER_FIXED_LENGTH = false;
+const bool RX_BUFFER_FIXED_LENGTH = false;
+const int TX_BUFFER_SIZE = 256;
+const bool TX_BUFFER_FIXED_LENGTH = false;
 
-BLEService microphoneService(uuidOfService);
+
+BLEService dataService(uuidOfService);
 BLECharacteristic rxChar(uuidOfRxChar, BLEWriteWithoutResponse | BLEWrite, RX_BUFFER_SIZE, RX_BUFFER_FIXED_LENGTH);
-BLEByteCharacteristic txChar(uuidOfTxChar, BLERead | BLENotify | BLEBroadcast);
-
-short sampleBuffer[256];
-
-// Number of samples read
-volatile int samplesRead;
+BLECharacteristic txChar(uuidOfTxChar, BLERead | BLENotify, TX_BUFFER_SIZE, TX_BUFFER_FIXED_LENGTH);
 
 void setup() {
   startBLE();
 
   // Create BLE service and characteristics.
+  BLE.setDeviceName(nameOfPeripheral);
   BLE.setLocalName(nameOfPeripheral);
-  BLE.setAdvertisedService(microphoneService);
-  microphoneService.addCharacteristic(rxChar);
-  microphoneService.addCharacteristic(txChar);
-  BLE.addService(microphoneService);
+  BLE.setAdvertisedService(dataService);
+  dataService.addCharacteristic(rxChar);
+  dataService.addCharacteristic(txChar);
+
+  BLE.addService(dataService);
 
   // Bluetooth LE connection handlers.
   BLE.setEventHandler(BLEConnected, onBLEConnected);
@@ -42,7 +42,7 @@ void setup() {
   Serial.print("MAC: ");
   Serial.println(BLE.address());
   Serial.print("Service UUID: ");
-  Serial.println(microphoneService.uuid());
+  Serial.println(dataService.uuid());
   Serial.print("rxCharacteristic UUID: ");
   Serial.println(uuidOfRxChar);
   Serial.print("txCharacteristics UUID: ");
@@ -53,24 +53,21 @@ void setup() {
 }
 
 void loop() {
-BLEDevice central = BLE.central();
+  BLE.poll();
+  BLEDevice central = BLE.central();
   
   if (central)
   {
     // Only send data if we are connected to a central device.
     while (central.connected()) {
-
-      // Send the microphone values to the central device.
-      if (samplesRead) {
-        // print samples to the serial monitor or plotter
-        for (int i = 0; i < samplesRead; i++) {
-          txChar.writeValue(sampleBuffer[i]);      
-        }
-        // Clear the read count
-        samplesRead = 0;
+      if (Serial.available()>0) {
+        String res = Serial.readString();
+        Serial.println("Sending : " + res);
+        uint8_t data[256];
+        res.getBytes(data, res.length());
+        txChar.writeValue(data, res.length());
       }
     }
-  } else {
   }
 }
 
@@ -83,17 +80,9 @@ void startBLE() {
 }
 
 void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
-  // central wrote new value to characteristic, update LED
-  Serial.print("Characteristic event, read: ");
-  byte tmp[256];
-  int dataLength = rxChar.readValue(tmp, 256);
+  String data = reinterpret_cast<const char*>(rxChar.value());
 
-  for(int i = 0; i < dataLength; i++) {
-    Serial.print((char)tmp[i]);
-  }
-  Serial.println();
-  Serial.print("Value length = ");
-  Serial.println(rxChar.valueLength());
+  Serial.println("Received : " + data);
 }
 
 void onBLEConnected(BLEDevice central) {
