@@ -81,8 +81,7 @@ void startBLE() {
 
 void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
   String data = reinterpret_cast<const char*>(rxChar.value());
-
-  Serial.println("Received : " + data);
+  Serial.println("Received : " + data.substring(0,rxChar.valueLength()));
 }
 
 void onBLEConnected(BLEDevice central) {
