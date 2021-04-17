@@ -21,11 +21,11 @@ void SoriSerial::begin(){
     BLE.addService(dataService);
 
     // Bluetooth LE connection handlers.
-    BLE.setEventHandler(BLEConnected, onConnect);
-    BLE.setEventHandler(BLEDisconnected, onDisconnect);
+    BLE.setEventHandler(BLEConnected, std::bind(&SoriSerial::onConnect, this, std::placeholders::_1));
+    BLE.setEventHandler(BLEDisconnected, std::bind(&SoriSerial::onDisconnect, this, std::placeholders::_1));
 
     // Event driven reads.
-    rxChar.setEventHandler(BLEWritten, onReceiveMessage);
+    rxChar.setEventHandler(BLEWritten, std::bind(&SoriSerial::onDisconnect, this, std::placeholders::_1, std::placeholders::_2));
     
     receivedMessage = EMPTY_MESSAGE;
     messageReceived = false;
