@@ -6,9 +6,12 @@
 class SoriSerial
 {
 public:
+    SoriSerial();
     void begin();
+    void poll();
     String read();
     void write(String message);
+    bool isMessageReceived();
 private:
     const char* nameOfPeripheral = "SORI";
     const char* uuidOfService = "0000181a-0000-1000-8000-00805f9b34fb";
@@ -20,11 +23,14 @@ private:
     const int TX_BUFFER_SIZE = 256;
     const bool TX_BUFFER_FIXED_LENGTH = false;
     
-    BLEService dataService(uuidOfService);
-    BLECharacteristic rxChar(uuidOfRxChar, BLEWriteWithoutResponse | BLEWrite, RX_BUFFER_SIZE, RX_BUFFER_FIXED_LENGTH);
-    BLECharacteristic txChar(uuidOfTxChar, BLERead | BLENotify, TX_BUFFER_SIZE, TX_BUFFER_FIXED_LENGTH);
+    BLEService dataService;
+    BLECharacteristic rxChar;
+    BLECharacteristic txChar;
     
-    String receivedMessage;
+    const String EMPTY_MESSAGE = "";
+    String receivedMessage = "";
+    bool messageReceived = false;
+    bool connected = false;
 
     void onConnect();
     void onDisconnect();

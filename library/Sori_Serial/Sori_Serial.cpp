@@ -1,8 +1,15 @@
 #include <Sori_Serial.h>
 
+
+SoriSerial::SoriSerial(){
+    dataService = BLEService(uuidOfService);
+    rxChar = BLECharacteristic(uuidOfRxChar, BLEWriteWithoutResponse | BLEWrite, RX_BUFFER_SIZE, RX_BUFFER_FIXED_LENGTH);
+    txChar = BLECharacteristic(uuidOfTxChar, BLERead | BLENotify, TX_BUFFER_SIZE, TX_BUFFER_FIXED_LENGTH);
+}
+
 void SoriSerial::begin(){
     if (!BLE.begin()){
-        while (1);
+        while (true);
     }
 
     BLE.setDeviceName(nameOfPeripheral);
@@ -14,11 +21,11 @@ void SoriSerial::begin(){
     BLE.addService(dataService);
 
     // Bluetooth LE connection handlers.
-    BLE.setEventHandler(BLEConnected, onBLEConnected);
-    BLE.setEventHandler(BLEDisconnected, onBLEDisconnected);
+    BLE.setEventHandler(BLEConnected, onConnect);
+    BLE.setEventHandler(BLEDisconnected, onDisconnect);
 
     // Event driven reads.
-    rxChar.setEventHandler(BLEWritten, onRxCharValueUpdate);
+    rxChar.setEventHandler(BLEWritten, onReceiveMessage);
     
     receivedMessage = EMPTY_MESSAGE;
     messageReceived = false;
@@ -31,7 +38,7 @@ void SoriSerial::poll(){
     BLE.poll();
 }
 
-bool SoriSerial::messageReceived(){
+bool SoriSerial::isMessageReceived(){
     return messageReceived;
 }
 
