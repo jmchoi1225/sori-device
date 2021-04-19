@@ -16,7 +16,6 @@ void loop(){
       printResult();
     }
   }
-  delay(20);
 }
 
 void printResult(){

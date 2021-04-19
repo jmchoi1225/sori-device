@@ -17,6 +17,7 @@ private:
     HardwareSerial*     TFSerial;
     uint16_t            distance = 0;
     uint16_t            strength = 0;
+    uint8_t             getNext(void);
 };
 
 #endif
