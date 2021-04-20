@@ -1,6 +1,6 @@
 #include <ArduinoBLE.h>
 
-const char* nameOfPeripheral = "SORI";
+const char* nameOfPeripheral = "SORI_BLE";
 const char* uuidOfService = "0000181a-0000-1000-8000-00805f9b34fb";
 const char* uuidOfRxChar = "00002A3D-0000-1000-8000-00805f9b34fb";
 const char* uuidOfTxChar = "00002A58-0000-1000-8000-00805f9b34fb";
