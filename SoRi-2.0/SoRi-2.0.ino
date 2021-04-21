@@ -2,7 +2,7 @@
 #include <ArduinoBLE.h>
 
 TFmini TFmini;
-unsigned long duration = 1000;
+unsigned long duration = 1000; // millisecond
 unsigned long lastWrite = 0;
 int TEST_mode = -1;
 
@@ -21,7 +21,9 @@ void loop() {
   
   soriSerialPoll();
   if(soriSerialIsMessageReceived()){
-    Serial.println("Received : " + soriSerialRead());
+    String message = soriSerialRead();
+    Serial.println("Received : " + message);
+    duration = message.toInt();
   }
 
   Serial.println("Sending Message");
