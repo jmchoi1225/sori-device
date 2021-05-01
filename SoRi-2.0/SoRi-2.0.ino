@@ -2,7 +2,9 @@
 #include <ArduinoBLE.h>
 
 TFmini TFmini;
-unsigned long duration = 1000; // millisecond
+unsigned long duration = 10000; // millisecond
+const unsigned long speechDuration = 3000;
+bool isSpeech = false;
 unsigned long lastWrite = 0;
 int TEST_mode = -1;
 
@@ -15,10 +17,6 @@ void setup() {
 void loop() {
   TFmini.measure();
 
-  if(millis() - lastWrite < duration){
-    return;
-  }
-  
   soriSerialPoll();
   if(soriSerialIsMessageReceived()){
     String message = soriSerialRead();
@@ -26,16 +24,40 @@ void loop() {
     duration = message.toInt();
   }
 
-  Serial.println("Sending Message");
+  if(needToWait()){
+    return;
+  }
+  
   lastWrite = millis();
 
+  if(!soriSerialIsConnected()) return;
+  
   int mode = getMode();
   if(mode == -1) return;
-  if(!soriSerialIsConnected()) return;
   int distance = TFmini.getDistance();
   String message = buildMessage(mode, distance);
   Serial.println(message);
   soriSerialWrite(message);
+  if(mode == 2){
+    isSpeech = true;
+  }
+}
+
+bool needToWait(){
+  if(isSpeech){
+    if(millis() - lastWrite < speechDuration){
+      return true;
+    }else{
+      isSpeech = false;
+    }
+  }else{
+    if(millis() - lastWrite < duration){
+      return true;
+    }
+  }
+  
+  lastWrite = millis();
+  return false;
 }
 
 int getMode(){
