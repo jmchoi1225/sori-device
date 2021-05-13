@@ -5,7 +5,8 @@ TFmini TFmini;
 unsigned long duration = 10000; // millisecond
 const unsigned long speechDuration = 3000;
 
-const int modeButtons[3] = {2,3,4};
+const int numOfModes = 3;
+const int modeButtons[numOfModes] = {2,3,4};
 
 bool isSpeech = false;
 unsigned long lastWrite = 0;
@@ -68,7 +69,7 @@ bool needToWait(){
 
 int getMode(){
  int mode = -1;
- for(int i =0; i<modeButtons.length; i++){
+ for(int i =0; i<numOfModes; i++){
   if(digitalRead(modeButtons[i])==LOW){
     mode = i;
   }
