@@ -16,7 +16,7 @@ void setup() {
   Serial.begin(9600);
   soriSerialBegin();
   TFmini.begin(Serial1);
-  for(int i=0; i<modeButtons.length; i++){
+  for(int i=0; i<numOfModes; i++){
     pinMode(modeButtons[i], INPUT);
   }
 }
