@@ -4,14 +4,21 @@
 TFmini TFmini;
 unsigned long duration = 10000; // millisecond
 const unsigned long speechDuration = 3000;
+
+const int numOfModes = 3;
+const int modeButtons[numOfModes] = {2,3,4};
+
 bool isSpeech = false;
 unsigned long lastWrite = 0;
-int TEST_mode = -1;
+int mode = -1;
 
 void setup() {
   Serial.begin(9600);
   soriSerialBegin();
   TFmini.begin(Serial1);
+  for(int i=0; i<numOfModes; i++){
+    pinMode(modeButtons[i], INPUT);
+  }
 }
 
 void loop() {
@@ -61,26 +68,13 @@ bool needToWait(){
 }
 
 int getMode(){
-  if(Serial.available()>0){
-    String res = Serial.readString();
-    Serial.println(res);
-    switch(res[0]){
-      case '0':
-        TEST_mode = 0;
-        break;
-      case '1':
-        TEST_mode = 1;
-        break;
-      case '2':
-        TEST_mode = 2;
-        break;
-      default : 
-        TEST_mode = -1;
-    }
-    Serial.print("Mode : ");
-    Serial.println(TEST_mode);
+ int mode = -1;
+ for(int i =0; i<numOfModes; i++){
+  if(digitalRead(modeButtons[i])==LOW){
+    mode = i;
   }
-  return TEST_mode;
+ }
+ return mode;
 }
 
 String buildMessage(int mode, int distance){
