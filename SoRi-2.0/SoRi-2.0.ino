@@ -10,8 +10,11 @@ const int modeButtons[numOfModes] = {2,3,4};
 
 const int batt_max = 860;            // 860/1024*5 = 4.199
 const int batt_min = 615;            // 615/102*5 = 3.00
+const unsigned long batteryDuration = 60000;
 const int batteryPin = 2;
+unsigned long batteryTimer = 0;
 const int batterySampleCount = 10;
+int batteryPercent = 100;
 
 bool isSpeech = false;
 unsigned long lastWrite = 0;
@@ -34,6 +37,10 @@ void loop() {
     String message = soriSerialRead();
     Serial.println("Received : " + message);
     duration = message.toInt();
+  }
+
+  if(isBatteryTimeUp()){
+    updateBatteryPercentage();
   }
 
   if(needToWait()){
@@ -82,6 +89,21 @@ int getMode(){
  return mode;
 }
 
+boolean isBatteryTimeUp(){
+  if(millis() - batteryTimer > batteryDuration){
+    batteryTimer = millis();
+    return true;
+  }
+  return false;
+}
+
+void updateBatteryPercentage(){
+  int batteryPercent = getBattery();
+  Serial.print("Battery : ");
+  Serial.println(batteryPercent);
+  soriBatteryWrite(batteryPercent);
+}
+
 int getBattery(){
   int vSum = 0;
   for(int i =0; i<batterySampleCount; i++){
@@ -89,11 +111,13 @@ int getBattery(){
   }
   int v = vSum / batterySampleCount;
   
-  int bl = map(v,batt_min,batt_max,0,100);
-  if (v<batt_min) bl=0;
-  if (v>batt_max) bl=100;
-  return bl;
+  int b = map(v,batt_min,batt_max,0,100);
+  if (v<batt_min) b=0;
+  if (v>batt_max) b=100;
+  return b;
 }
+
+
 
 String buildMessage(int mode, int distance){
   String message = "";
@@ -143,6 +167,7 @@ void soriSerialBegin(){
   BLE.setAdvertisedService(dataService);
   dataService.addCharacteristic(rxChar);
   dataService.addCharacteristic(txChar);
+  dataService.addCharacteristic(battery);
 
   BLE.addService(dataService);
 
@@ -209,6 +234,7 @@ bool soriSerialIsConnected(){
 
 void onConnect(BLEDevice central){
   Serial.println("Connected");
+  updateBatteryPercentage();
   connected = true;
 }
 
