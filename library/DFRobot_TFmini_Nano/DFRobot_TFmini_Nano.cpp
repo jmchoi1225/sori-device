@@ -30,6 +30,9 @@ bool      TFmini::measure(void)
         if(checksum == TFbuff[8]){
             distance = TFbuff[2]+TFbuff[3]*256;
             strength = TFbuff[4]+TFbuff[5]*256;
+            if(strength <=100 || strength == 65535){
+                distance = 1201;
+            }
             return true;
         }else{
             checksum  = 0;

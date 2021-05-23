@@ -8,6 +8,14 @@ const unsigned long speechDuration = 3000;
 const int numOfModes = 3;
 const int modeButtons[numOfModes] = {2,3,4};
 
+const int batt_max = 860;            // 860/1024*5 = 4.199
+const int batt_min = 615;            // 615/102*5 = 3.00
+const unsigned long batteryDuration = 120000;
+const int batteryPin = 2;
+unsigned long batteryTimer = 0;
+const int batterySampleCount = 10;
+int batteryPercent = 100;
+
 bool isSpeech = false;
 unsigned long lastWrite = 0;
 int mode = -1;
@@ -31,13 +39,17 @@ void loop() {
     duration = message.toInt();
   }
 
+  if(!soriSerialIsConnected()) return;
+
+  if(isBatteryTimeUp()){
+    sendBatteryPercentage();
+  }
+
   if(needToWait()){
     return;
   }
   
   lastWrite = millis();
-
-  if(!soriSerialIsConnected()) return;
   
   int mode = getMode();
   if(mode == -1) return;
@@ -77,6 +89,36 @@ int getMode(){
  return mode;
 }
 
+boolean isBatteryTimeUp(){
+  if(millis() - batteryTimer > batteryDuration){
+    batteryTimer = millis();
+    return true;
+  }
+  return false;
+}
+
+void sendBatteryPercentage(){
+  int batteryPercent = getBattery();
+  Serial.print("Battery : ");
+  Serial.println(batteryPercent);
+  soriBatteryWrite(batteryPercent);
+}
+
+int getBattery(){
+  int vSum = 0;
+  for(int i =0; i<batterySampleCount; i++){
+    vSum += analogRead(batteryPin);
+  }
+  int v = vSum / batterySampleCount;
+  
+  int b = map(v,batt_min,batt_max,0,100);
+  if (v<batt_min) b=0;
+  if (v>batt_max) b=100;
+  return b;
+}
+
+
+
 String buildMessage(int mode, int distance){
   String message = "";
   message += mode;
@@ -93,6 +135,7 @@ const char* nameOfPeripheral = "SORI_BLE";
 const char* uuidOfService = "0000181a-0000-1000-8000-00805f9b34fb";
 const char* uuidOfRxChar = "00002A3D-0000-1000-8000-00805f9b34fb";
 const char* uuidOfTxChar = "00002A58-0000-1000-8000-00805f9b34fb";
+const char* uuidOfBattery = "00002A73-0000-1000-8000-00805f9b34fb";
 
 const int RX_BUFFER_SIZE = 256;
 const bool RX_BUFFER_FIXED_LENGTH = false;
@@ -102,6 +145,8 @@ const bool TX_BUFFER_FIXED_LENGTH = false;
 BLEService dataService(uuidOfService);
 BLECharacteristic rxChar(uuidOfRxChar, BLEWriteWithoutResponse | BLEWrite, RX_BUFFER_SIZE, RX_BUFFER_FIXED_LENGTH);
 BLECharacteristic txChar(uuidOfTxChar, BLERead | BLENotify, TX_BUFFER_SIZE, TX_BUFFER_FIXED_LENGTH);
+BLECharacteristic battery(uuidOfBattery, BLERead | BLENotify, TX_BUFFER_SIZE, TX_BUFFER_FIXED_LENGTH);
+
 
 const String EMPTY_MESSAGE = "";
 String receivedMessage = EMPTY_MESSAGE;
@@ -122,6 +167,7 @@ void soriSerialBegin(){
   BLE.setAdvertisedService(dataService);
   dataService.addCharacteristic(rxChar);
   dataService.addCharacteristic(txChar);
+  dataService.addCharacteristic(battery);
 
   BLE.addService(dataService);
 
@@ -150,7 +196,8 @@ void soriSerialBegin(){
   Serial.println(uuidOfRxChar);
   Serial.print("txCharacteristics UUID: ");
   Serial.println(uuidOfTxChar);
-  
+  Serial.print("battery UUID: ");
+  Serial.println(uuidOfBattery);
 
   Serial.println("Bluetooth device active, waiting for connections...");
 }
@@ -171,6 +218,10 @@ String soriSerialRead(){
   return receivedMessage;
 }
 
+void soriBatteryWrite(int batteryPercent){
+  battery.writeValue((uint8_t)batteryPercent);
+}
+
 void soriSerialWrite(String message){
   uint8_t data[256];
   message.getBytes(data, message.length());
@@ -183,6 +234,7 @@ bool soriSerialIsConnected(){
 
 void onConnect(BLEDevice central){
   Serial.println("Connected");
+  sendBatteryPercentage();
   connected = true;
 }
 
