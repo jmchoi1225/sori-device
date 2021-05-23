@@ -10,7 +10,7 @@ const int modeButtons[numOfModes] = {2,3,4};
 
 const int batt_max = 860;            // 860/1024*5 = 4.199
 const int batt_min = 615;            // 615/102*5 = 3.00
-const unsigned long batteryDuration = 60000;
+const unsigned long batteryDuration = 120000;
 const int batteryPin = 2;
 unsigned long batteryTimer = 0;
 const int batterySampleCount = 10;
@@ -39,8 +39,10 @@ void loop() {
     duration = message.toInt();
   }
 
+  if(!soriSerialIsConnected()) return;
+
   if(isBatteryTimeUp()){
-    updateBatteryPercentage();
+    sendBatteryPercentage();
   }
 
   if(needToWait()){
@@ -48,8 +50,6 @@ void loop() {
   }
   
   lastWrite = millis();
-
-  if(!soriSerialIsConnected()) return;
   
   int mode = getMode();
   if(mode == -1) return;
@@ -97,7 +97,7 @@ boolean isBatteryTimeUp(){
   return false;
 }
 
-void updateBatteryPercentage(){
+void sendBatteryPercentage(){
   int batteryPercent = getBattery();
   Serial.print("Battery : ");
   Serial.println(batteryPercent);
@@ -234,7 +234,7 @@ bool soriSerialIsConnected(){
 
 void onConnect(BLEDevice central){
   Serial.println("Connected");
-  updateBatteryPercentage();
+  sendBatteryPercentage();
   connected = true;
 }
 
