@@ -39,7 +39,10 @@ void loop() {
     duration = message.toInt();
   }
 
-  if(!soriSerialIsConnected()) return;
+  if(!soriSerialIsConnected()) {
+    pressed = false;
+    return;
+  }
 
   if(isBatteryTimeUp()){
     sendBatteryPercentage();
@@ -79,6 +82,13 @@ bool needToWait(){
   return false;
 }
 
+int keepMode = -1;
+int prevMode = -1;
+boolean keep = false;
+boolean pressed = false;
+const unsigned long keepDuration = 3000;
+unsigned long pressedTimer = 0;
+
 int getMode(){
  int mode = -1;
  for(int i =0; i<numOfModes; i++){
@@ -86,6 +96,57 @@ int getMode(){
     mode = i;
   }
  }
+
+  /*
+  고려할 케이스 : 
+  1. 버튼이 안눌렸을 때 : 
+    - keepMode 출력
+  2. 같은 버튼이 꾹 눌렸을 때 :
+    3초 이상 눌렸을 때 : 
+      keep : 
+        keepMode = -1
+      !keep : 
+        keepMode = mode 
+  3. keepMode와 다른 mode 눌렸을 때 :
+    keepMode = -1
+    keep = false;
+    
+  */
+
+ if(mode == -1){ // not pressed -> return keep mode
+  pressed = false;
+  if(keepMode == -1){
+    keep = false;
+  }else{
+    keep = true;
+  }
+  prevMode = mode;
+  return keepMode;
+ }
+
+ if(keepMode != mode){ //pressed button different from keep mode -> keep off
+  keepMode = -1;
+  keep = false;
+ }
+
+ if(prevMode == mode){ // keep pressing same button
+  if(!pressed){
+    pressed = true;
+    pressedTimer = millis();
+  }
+ }else{
+  pressed = false;
+ }
+
+ if(pressed && millis() - pressedTimer > keepDuration){ //keep pressing the same button for more than 3 sec
+    if(keep){
+      keepMode = -1;
+    }else{
+      keepMode = mode;
+    }
+  }
+ 
+ prevMode = mode;
  return mode;
 }
 
