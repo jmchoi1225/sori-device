@@ -1,12 +1,20 @@
+#include <OneButton.h>
 #include <DFRobot_TFmini_Nano.h>
 #include <ArduinoBLE.h>
 
+
 TFmini TFmini;
-unsigned long duration = 10000; // millisecond
-const unsigned long speechDuration = 3000;
+unsigned long duration = 100; // millisecond
+const unsigned long speechDuration = 2000;
 
 const int numOfModes = 3;
-const int modeButtons[numOfModes] = {2,3,4};
+const int modePin = 2;
+const unsigned long pressedTime = 1000;
+OneButton button(modePin, true);
+int mode = 0;
+boolean keep = false;
+boolean play = false;
+unsigned long pressedTimer = 0;
 
 const int batt_max = 860;            // 860/1024*5 = 4.199
 const int batt_min = 615;            // 615/102*5 = 3.00
@@ -18,21 +26,22 @@ int batteryPercent = 100;
 
 bool isSpeech = false;
 unsigned long lastWrite = 0;
-int mode = -1;
 
 void setup() {
   Serial.begin(9600);
   soriSerialBegin();
   TFmini.begin(Serial1);
-  for(int i=0; i<numOfModes; i++){
-    pinMode(modeButtons[i], INPUT);
-  }
+  
+  button.attachDoubleClick(doubleClick);
+  button.attachLongPressStart(longPressStart);
+  button.attachLongPressStop(longPressStop);
 }
 
 void loop() {
   TFmini.measure();
-
+  button.tick();
   soriSerialPoll();
+  
   if(soriSerialIsMessageReceived()){
     String message = soriSerialRead();
     Serial.println("Received : " + message);
@@ -40,7 +49,6 @@ void loop() {
   }
 
   if(!soriSerialIsConnected()) {
-    pressed = false;
     return;
   }
 
@@ -82,72 +90,11 @@ bool needToWait(){
   return false;
 }
 
-int keepMode = -1;
-int prevMode = -1;
-boolean keep = false;
-boolean pressed = false;
-const unsigned long keepDuration = 3000;
-unsigned long pressedTimer = 0;
-
 int getMode(){
- int mode = -1;
- for(int i =0; i<numOfModes; i++){
-  if(digitalRead(modeButtons[i])==LOW){
-    mode = i;
+  if(!play){
+    return -1;
   }
- }
-
-  /*
-  고려할 케이스 : 
-  1. 버튼이 안눌렸을 때 : 
-    - keepMode 출력
-  2. 같은 버튼이 꾹 눌렸을 때 :
-    3초 이상 눌렸을 때 : 
-      keep : 
-        keepMode = -1
-      !keep : 
-        keepMode = mode 
-  3. keepMode와 다른 mode 눌렸을 때 :
-    keepMode = -1
-    keep = false;
-    
-  */
-
- if(mode == -1){ // not pressed -> return keep mode
-  pressed = false;
-  if(keepMode == -1){
-    keep = false;
-  }else{
-    keep = true;
-  }
-  prevMode = mode;
-  return keepMode;
- }
-
- if(keepMode != mode){ //pressed button different from keep mode -> keep off
-  keepMode = -1;
-  keep = false;
- }
-
- if(prevMode == mode){ // keep pressing same button
-  if(!pressed){
-    pressed = true;
-    pressedTimer = millis();
-  }
- }else{
-  pressed = false;
- }
-
- if(pressed && millis() - pressedTimer > keepDuration){ //keep pressing the same button for more than 3 sec
-    if(keep){
-      keepMode = -1;
-    }else{
-      keepMode = mode;
-    }
-  }
- 
- prevMode = mode;
- return mode;
+  return mode;
 }
 
 boolean isBatteryTimeUp(){
@@ -178,8 +125,6 @@ int getBattery(){
   return b;
 }
 
-
-
 String buildMessage(int mode, int distance){
   String message = "";
   message += mode;
@@ -188,6 +133,34 @@ String buildMessage(int mode, int distance){
   message += "\n";
   return message;
 }
+
+void doubleClick(){
+  mode = (mode+1)%numOfModes;
+  Serial.print("Change Mode : ");
+  Serial.println(mode);
+}
+
+void longPressStart(){
+  Serial.println("Long Press Start");
+  play = true;
+  pressedTimer = millis();
+}
+
+void longPressStop(){
+  Serial.println("Long Press Stop");
+  if(millis() - pressedTimer > pressedTime){
+    keep = false;
+  }else{
+    keep = !keep;
+  }
+  play = keep;
+  Serial.print("Keep : ");
+  Serial.println(keep);
+  Serial.print("Play : ");
+  Serial.println(play);
+}
+
+
 
 //-------------------------------------------------------
 //SoriSerial
